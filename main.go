@@ -17,10 +17,36 @@ type FetchResult struct {
 
 // Worker function
 func worker(id int, jobs <-chan string, results chan<- FetchResult) {
-	// TODO: fetch the URL
-	// TODO: send Result struct to results channel
-	// hint: use resp, err := http.Get(url)
-}
+	defer wg.Done() // when everything is done
+
+    for url := range jobs { // go through the urls 
+        resp, err := http.Get(url) // try to hit url with http get
+        if err != nil {
+            results <- FetchResult{URL: url, Error: err}
+            continue
+        }
+        defer resp.Body.Close() // close after reading
+
+        body, err := io.ReadAll(resp.Body)
+        if err != nil {
+            results <- FetchResult{
+                URL:        url,
+                StatusCode: resp.StatusCode,
+                Error:      err,
+            }
+            continue
+        }
+
+        results <- FetchResult{ // send back data (url, status, size)
+            URL:        url,
+            StatusCode: resp.StatusCode,
+            Size:       len(body),
+            Error:      nil,
+        }
+    }
+	}
+	
+	
 
 func main() {
 
