@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"sync"
 )
+
+var wg sync.WaitGroup
 
 // Structure to store results
 type FetchResult struct {
