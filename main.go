@@ -63,11 +63,34 @@ func main() {
 	jobs := make(chan string, len(urls))
 	results := make(chan FetchResult, len(urls))
 
-	// TODO: Start workers
+	// Start workers
+    for w := 1; w <= numWorkers; w++ {
+        wg.Add(1) 
+        go worker(w, jobs, results) // worker runs in the background doing the scraping
+    }
+    // Send jobs (URLs) to workers
+    go func() {
+        for _, url := range urls {
+            jobs <- url // push each url into channel for workers to grab
+        }
+        close(jobs) // no more urls after this
+    }()
 
-	// TODO: Send jobs
+    // Collect results after all workers done
+    go func() {
+        wg.Wait()      // wait for ALL workers to finish
+        close(results) // after that, we're done receiving results
+    }()
 
-	// TODO: Collect results
+    // Loop through results workers sent us
+    for r := range results {
+        if r.Error != nil {
+            fmt.Printf("%s | ERROR: %v\n", r.URL, r.Error) // if any URL failed
+        } else {
+            fmt.Printf("%s | Status: %d | Size: %d bytes\n",
+                r.URL, r.StatusCode, r.Size) // success: show url, status code, and size
+        }
+    }
 
 	fmt.Println("\nScraping complete!")
 }
